@@ -49,3 +49,40 @@ class UserSerializer(serializers.ModelSerializer):
             'role', 'role_display', 'date_joined'
         ]
         read_only_fields = ['id', 'date_joined']
+
+class RegisterSerializer(serializers.ModelSerializer):
+    """註冊序列化器（選用）"""
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'},
+        min_length=8,
+        help_text="密碼至少8個字元"
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'},
+        help_text="確認密碼"
+    )
+    
+    class Meta:
+        model = User
+        fields = [
+            'username', 'password', 'password_confirm',
+            'name', 'email', 'role'
+        ]
+        extra_kwargs = {
+            'email': {'required': False},
+            'role': {'default': 'student'}
+        }
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError("密碼與確認密碼不符")
+        return attrs
+    
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')  # 移除確認密碼欄位（不需要儲存到資料庫）
+        user = User.objects.create_user(**validated_data)
+        return user
