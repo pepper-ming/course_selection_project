@@ -45,7 +45,7 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
 
         # 分頁處理
-        page = self.paginate_queryset(queryset)
+        page = self.paginate_queryset(queryset) # settings.py 設定每頁 20 筆
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
