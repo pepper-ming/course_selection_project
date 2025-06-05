@@ -85,4 +85,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')  # 移除確認密碼欄位（不需要儲存到資料庫）
         user = User.objects.create_user(**validated_data)
+        """
+        create_user() 而非 create(), create_user() 會自動將密碼進行雜湊處理(Django 標準做法)
+        """
         return user
