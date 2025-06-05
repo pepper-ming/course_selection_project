@@ -82,7 +82,7 @@ DATABASES = {
         'NAME': 'course_selection_db',
         'USER': 'dylan',
         'PASSWORD': 'ji3cl3x04',
-        'HOST': 'localhost',  # docker-compose 內部服務名，非 localhost！
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }
@@ -137,7 +137,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         # 之後可加入 TokenAuthentication 或 JWT
-        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

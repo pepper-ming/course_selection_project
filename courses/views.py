@@ -70,9 +70,15 @@ class EnrollmentViewSet(viewsets.ViewSet):
 
     def get_queryset(self):
         """只顯示當前使用者的選課紀錄"""
+        # 為 Swagger 文件生成添加檢查
+        if getattr(self, 'swagger_fake_view', False):
+            # 在 Swagger 文件生成時返回空的 QuerySet
+            return Enrollment.objects.none()
+        
         return Enrollment.objects.filter(
             user=self.request.user
         ).select_related('course').prefetch_related('course__timeslots')
+
     
     def list(self, request, *args, **kwargs):
         """

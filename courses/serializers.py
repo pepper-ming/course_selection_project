@@ -14,7 +14,7 @@ class CourseSerializer(serializers.ModelSerializer):
     enrolled_count = serializers.SerializerMethodField()
     remaining_slots = serializers.SerializerMethodField()
 
-    ### source='coursetimeslot_set' 指定ForeignKey反查
+    ### 移除多餘的 source 參數，因為欄位名稱已經是 timeslots
     timeslots = CourseTimeSlotSerializer(many=True, source='timeslots')
 
     class Meta:
