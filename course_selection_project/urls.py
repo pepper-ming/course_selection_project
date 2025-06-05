@@ -28,12 +28,17 @@ schema_view = get_schema_view(
    ),
    public=True,
    permission_classes=[permissions.AllowAny],
+   authentication_classes=[], # 允許匿名訪問 Swagger
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('courses.urls')),
     path('api/', include('accounts.urls')),
+    
+    # 為 Swagger "Django Login" 按鈕添加 Django 預設的 accounts URLs
+    path('accounts/', include('django.contrib.auth.urls')),
+    
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]

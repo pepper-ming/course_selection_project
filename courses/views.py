@@ -3,6 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .models import Course, Enrollment
 from .serializers import CourseSerializer, EnrollmentSerializer
 from .services import enroll_course, withdraw_course
@@ -36,6 +38,30 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(semester=semester)
         
         return queryset.prefetch_related('timeslots')
+    
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'search', 
+                openapi.IN_QUERY, 
+                description="課程名稱關鍵字搜尋", 
+                type=openapi.TYPE_STRING
+            ),
+            openapi.Parameter(
+                'type', 
+                openapi.IN_QUERY, 
+                description="課程類型篩選 (必修/選修)", 
+                type=openapi.TYPE_STRING,
+                enum=['必修', '選修']
+            ),
+            openapi.Parameter(
+                'semester', 
+                openapi.IN_QUERY, 
+                description="開課學期篩選", 
+                type=openapi.TYPE_STRING
+            ),
+        ]
+    )
     
     def list(self, request, *args, **kwargs):
         """

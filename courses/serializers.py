@@ -15,7 +15,11 @@ class CourseSerializer(serializers.ModelSerializer):
     remaining_slots = serializers.SerializerMethodField()
 
     ### 移除多餘的 source 參數，因為欄位名稱已經是 timeslots
-    timeslots = CourseTimeSlotSerializer(many=True, source='timeslots')
+    timeslots = CourseTimeSlotSerializer(many=True, read_only=True)
+    """
+    當欄位名稱(timeslots)與模型關係名稱相同時，不需要指定 source 參數，
+    因為 Django REST Framework 會自動映射
+    """
 
     class Meta:
         model = Course
