@@ -149,8 +149,7 @@ class EnrollmentViewSet(viewsets.ViewSet):
         回傳學生已選的課程列表(只回傳課程資料,不含選課紀錄ID)
         """
         enrollments = self.get_queryset()
-        courses = [enrollment.course for enrollment in enrollments]
-        serializer = CourseSerializer(courses, many=True)
+        serializer = EnrollmentSerializer(enrollments, many=True)
         return Response(serializer.data)
 
     @swagger_auto_schema(

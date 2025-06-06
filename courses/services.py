@@ -62,24 +62,47 @@ def withdraw_course(user, enrollment_id):
     定義退選服務函式。
     處理退選邏輯，包括檢查選課記錄存在、權限驗證、最低選課門數限制等。
     """
-
+    # 添加調試信息
+    print(f"Debug - withdraw_course called with user: {user.id}, enrollment_id: {enrollment_id}, type: {type(enrollment_id)}")
+    
+    # 確保 enrollment_id 是整數
+    try:
+        enrollment_id = int(enrollment_id)
+    except (ValueError, TypeError):
+        print(f"Debug - Invalid enrollment_id: {enrollment_id}")
+        raise ValidationError("無效的選課記錄ID。")
+    
+    # 查看該用戶的所有選課記錄
+    user_enrollments = Enrollment.objects.filter(user=user)
+    print(f"Debug - User {user.id} has enrollments: {list(user_enrollments.values_list('id', flat=True))}")
+    
     # 1. 確認選課紀錄存在且屬於該使用者
     try:
         enrollment = Enrollment.objects.select_related('course').get(
             pk=enrollment_id, 
             user=user
         )
+        print(f"Debug - Found enrollment: {enrollment.id} for course: {enrollment.course.name}")
     except Enrollment.DoesNotExist:
+        print(f"Debug - Enrollment {enrollment_id} not found for user {user.id}")
+        # 檢查該 enrollment_id 是否存在但屬於其他用戶
+        try:
+            other_enrollment = Enrollment.objects.get(pk=enrollment_id)
+            print(f"Debug - Enrollment {enrollment_id} exists but belongs to user {other_enrollment.user.id}")
+        except Enrollment.DoesNotExist:
+            print(f"Debug - Enrollment {enrollment_id} does not exist at all")
         raise ValidationError("找不到選課記錄或您無權限退選此課程。")
     
     # 2. 檢查退選後不得低於2門課程
     current_count = Enrollment.objects.filter(user=user).count()
+    print(f"Debug - Current enrollment count: {current_count}")
     if current_count <= MIN_COURSE_LIMIT:
         raise ValidationError(f"退選失敗：至少需選擇 {MIN_COURSE_LIMIT} 門課程。")
     
     with transaction.atomic():
         course_name = enrollment.course.name  # 保存課程名稱用於返回
         enrollment.delete()
+        print(f"Debug - Successfully deleted enrollment for course: {course_name}")
 
         # 可以返回成功訊息或相關資訊
         return {
