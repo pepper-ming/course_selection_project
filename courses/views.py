@@ -3,6 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Course, Enrollment
@@ -83,6 +85,8 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
             'results': serializer.data
         })
 
+# 為整個 ViewSet 添加 CSRF exemption
+@method_decorator(csrf_exempt, name='dispatch')
 class EnrollmentViewSet(viewsets.ViewSet):
     """
     選課管理 ViewSet
@@ -105,6 +109,39 @@ class EnrollmentViewSet(viewsets.ViewSet):
             user=self.request.user
         ).select_related('course').prefetch_related('course__timeslots')
 
+    @swagger_auto_schema(
+            operation_description="查詢學生已選的課程列表",
+            responses={
+                200: openapi.Response(
+                    description="成功取得列表",
+                    schema=openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'course_code': openapi.Schema(type=openapi.TYPE_STRING),
+                                'type': openapi.Schema(type=openapi.TYPE_STRING),
+                                'timeslots': openapi.Schema(
+                                    type=openapi.TYPE_ARRAY,
+                                    items=openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'day_of_week': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'start_time': openapi.Schema(type=openapi.TYPE_STRING, format='openapi.FORMAT_TIME'),
+                                            'end_time': openapi.Schema(type=openapi.TYPE_STRING, format='openapi.FORMAT_TIME'),
+                                            'location': openapi.Schema(type=openapi.TYPE_STRING)
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    )
+                ),
+                401: "未授權，請先登入"
+            }
+    )
     
     def list(self, request, *args, **kwargs):
         """
@@ -115,6 +152,67 @@ class EnrollmentViewSet(viewsets.ViewSet):
         courses = [enrollment.course for enrollment in enrollments]
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_description="學生選課",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['course_id'],
+            properties={
+                'course_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='欲選課程的ID',
+                    example=1
+                )
+            }
+        ),
+        responses={
+            201: openapi.Response(
+                description="選課成功",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'user': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'course': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'course_code': openapi.Schema(type=openapi.TYPE_STRING),
+                                'type': openapi.Schema(type=openapi.TYPE_STRING),
+                                'capacity': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'enrolled_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'remaining_slots': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'timeslots': openapi.Schema(
+                                    type=openapi.TYPE_ARRAY,
+                                    items=openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'day_of_week': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'start_time': openapi.Schema(type=openapi.TYPE_STRING, format='openapi.FORMAT_TIME'),
+                                            'end_time': openapi.Schema(type=openapi.TYPE_STRING, format='openapi.FORMAT_TIME'),
+                                            'location': openapi.Schema(type=openapi.TYPE_STRING)
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(
+                description="選課失敗",
+                examples={
+                    "application/json": {
+                        "detail": "選課失敗：課程人數已滿，無剩餘名額。"
+                    }
+                }
+            ),
+            401: "未授權，請先登入",
+            404: "課程不存在"
+        }
+    )
     
     def create(self, request, *args, **kwargs):
         """
@@ -130,7 +228,8 @@ class EnrollmentViewSet(viewsets.ViewSet):
                 )
             
             enrollment = enroll_course(request.user, course_id)
-            serializer = self.get_serializer(enrollment)
+            # 直接實例化 serializer 而不是使用 get_serializer，因為這裡需要的是新建的選課紀錄
+            serializer = EnrollmentSerializer(enrollment)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         except ValidationError as e:
@@ -140,11 +239,39 @@ class EnrollmentViewSet(viewsets.ViewSet):
             )
         
         except Exception as e:
+            import traceback
+            print(f"選課錯誤: {str(e)}")
+            print(traceback.format_exc())
             return Response(
-                {'detail': '選課失敗：系統錯誤'},
+                {'detail': f'選課失敗：{str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+    @swagger_auto_schema(
+        operation_description="退選課程",
+        manual_parameters=[
+            openapi.Parameter(
+                'id', 
+                openapi.IN_PATH, 
+                description="選課紀錄 ID", 
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            204: "退選成功",
+            400: openapi.Response(
+                description="退選失敗",
+                examples={
+                    "application/json": {
+                        "detail": "退選失敗:學生至少需保留2門課程。"
+                    }
+                }
+            ),
+            401: "未授權，請先登入",
+            404: "選課紀錄不存在"
+        }
+    )
     
     def destroy(self, request, *args, **kwargs):
         """
@@ -152,16 +279,21 @@ class EnrollmentViewSet(viewsets.ViewSet):
         """
         try:
             enrollment_id = kwargs.get('pk')
+            print(f"嘗試退選 enrollment_id: {enrollment_id}, user: {request.user.id}")
             result = withdraw_course(request.user, enrollment_id)
             return Response(status=status.HTTP_204_NO_CONTENT)
         
         except ValidationError as e:
+            print(f"退選驗證錯誤: {str(e)}")
             return Response(
                 {'detail': str(e.message if hasattr(e, 'message') else e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         except Exception as e:
+            print(f"退選系統錯誤: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
             return Response(
                 {'detail': '退選失敗：系統錯誤'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -195,4 +327,7 @@ class EnrollmentViewSet(viewsets.ViewSet):
         額外提供的端點: GET /api/enrollments/my-courses/
         另一種查詢課表的方式，回傳格式與 list 相同
         """
-        return self.list(request)
+        enrollments = self.get_queryset()
+        courses = [enrollment.course for enrollment in enrollments]
+        serializer = CourseSerializer(courses, many=True)
+        return Response(serializer.data)

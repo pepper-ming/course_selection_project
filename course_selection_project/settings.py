@@ -177,3 +177,64 @@ SIMPLE_JWT = {
 
 # 如果使用 JWT 黑名單功能，需要在 INSTALLED_APPS 加入：
 # 'rest_framework_simplejwt.token_blacklist',
+
+# CSRF 設定 - 開發環境用
+if DEBUG:
+    # 開發環境允許來自 localhost 的請求
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+    ]
+    
+    # 對 API 端點免除 CSRF 檢查
+    CSRF_EXEMPT_URLS = [
+        r'^/api/',  # 所有 /api/ 開頭的 URL 都免除 CSRF 檢查
+    ]
+
+# REST Framework 設定中添加 CSRF exemption for API
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    # 為 API 添加 CSRF exemption
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+}
+
+# 自定義 SessionAuthentication 類別來免除 CSRF
+from rest_framework.authentication import SessionAuthentication
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return # 不執行 CSRF 檢查
+
+# 在開發環境使用免除 CSRF 的 SessionAuthentication
+if DEBUG:
+    REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
+        'course_selection_project.settings.CsrfExemptSessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ]
+
+# Swagger 設定
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Basic': {
+            'type': 'basic'
+        },
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    },
+    'USE_SESSION_AUTH': True,
+    'LOGIN_URL': '/admin/login/',
+    'LOGOUT_URL': '/admin/logout/',
+}
