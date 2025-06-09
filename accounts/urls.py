@@ -15,17 +15,17 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
 ]
 
-# 如果使用 JWT Token
-try:
-    from rest_framework_simplejwt.views import TokenRefreshView
-    from .views import CustomTokenObtainPairView
+# # 如果使用 JWT Token
+# try:
+#     from rest_framework_simplejwt.views import TokenRefreshView
+#     from .views import CustomTokenObtainPairView
     
-    # JWT 相關端點
-    jwt_urlpatterns = [
-        path('auth/jwt/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-        path('auth/jwt/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    ]
+#     # JWT 相關端點
+#     jwt_urlpatterns = [
+#         path('auth/jwt/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+#         path('auth/jwt/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+#     ]
     
-    urlpatterns += jwt_urlpatterns
-except ImportError:
-    pass
+#     urlpatterns += jwt_urlpatterns
+# except ImportError:
+#     pass

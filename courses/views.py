@@ -39,7 +39,7 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         if semester:
             queryset = queryset.filter(semester=semester)
         
-        return queryset.prefetch_related('timeslots')
+        return queryset.prefetch_related('timeslots').order_by('id')
     
     @swagger_auto_schema(
         manual_parameters=[

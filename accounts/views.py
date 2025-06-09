@@ -9,11 +9,11 @@ from drf_yasg import openapi
 from .serializers import LoginSerializer, UserSerializer, RegisterSerializer
 from .models import User
 
-try:
-    from rest_framework_simplejwt.tokens import RefreshToken
-    JWT_ENABLED = True
-except ImportError:
-    JWT_ENABLED = False
+# try:
+#     from rest_framework_simplejwt.tokens import RefreshToken
+#     JWT_ENABLED = True
+# except ImportError:
+#     JWT_ENABLED = False
 
 class LoginView(APIView):
     """
@@ -64,13 +64,13 @@ class LoginView(APIView):
                 'message': '登入成功'
             }
 
-            # 如果啟用 JWT，額外回傳 tokens
-            if JWT_ENABLED and request.data.get('use_jwt', False):
-                refresh = RefreshToken.for_user(user)
-                response_data['token'] = {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
+            # # 如果啟用 JWT，額外回傳 tokens
+            # if JWT_ENABLED and request.data.get('use_jwt', False):
+            #     refresh = RefreshToken.for_user(user)
+            #     response_data['token'] = {
+            #         'refresh': str(refresh),
+            #         'access': str(refresh.access_token),
+            #     }
             
             return Response(response_data, status=status.HTTP_200_OK)
         
@@ -164,24 +164,24 @@ class RegisterView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED
         )
 
-# JWT Token 相關視圖（如果使用 JWT）
-if JWT_ENABLED:
-    from rest_framework_simplejwt.views import (
-        TokenObtainPairView,
-        TokenRefreshView,
-    )
-    from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+# # JWT Token 相關視圖（如果使用 JWT）
+# if JWT_ENABLED:
+#     from rest_framework_simplejwt.views import (
+#         TokenObtainPairView,
+#         TokenRefreshView,
+#     )
+#     from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
     
-    class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-        """自訂 JWT Token 序列化器，加入使用者資訊"""
-        def validate(self, attrs):
-            data = super().validate(attrs)
+#     class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+#         """自訂 JWT Token 序列化器，加入使用者資訊"""
+#         def validate(self, attrs):
+#             data = super().validate(attrs)
             
-            # 加入使用者資訊
-            data['user'] = UserSerializer(self.user).data
+#             # 加入使用者資訊
+#             data['user'] = UserSerializer(self.user).data
             
-            return data
+#             return data
     
-    class CustomTokenObtainPairView(TokenObtainPairView):
-        """自訂 JWT 登入視圖"""
-        serializer_class = CustomTokenObtainPairSerializer
+#     class CustomTokenObtainPairView(TokenObtainPairView):
+#         """自訂 JWT 登入視圖"""
+#         serializer_class = CustomTokenObtainPairSerializer
