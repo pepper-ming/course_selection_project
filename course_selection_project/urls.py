@@ -37,7 +37,18 @@ urlpatterns = [
     path('api/', include('accounts.urls')),
     
     # 為 Swagger "Django Login" 按鈕添加 Django 預設的 accounts URLs
-    path('accounts/', include('django.contrib.auth.urls')),
+    # path('accounts/', include('django.contrib.auth.urls')),
+    # 使用命名空間避免與 API 端點名稱衝突
+    path(
+        'accounts/',
+        include(
+            (
+                'django.contrib.auth.urls',
+                'django.contrib.auth'
+            ),
+            namespace='django-auth'
+        ),
+    ),
     
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
